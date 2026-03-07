@@ -11,11 +11,11 @@ async function runCli(args: string[], cwd: string) {
 
 describe('cli spark aliases', () => {
   it('supports spark search alias', async () => {
-    const dir = await mkdtemp(join(tmpdir(), 'nis-cli-'));
-    await runCli(['init', '--file', join(dir, '.nis', 'tree.json'), '--force'], process.cwd());
+    const dir = await mkdtemp(join(tmpdir(), 'treejson-cli-'));
+    await runCli(['init', '--file', join(dir, '.treejson', 'tree.json'), '--force'], process.cwd());
 
     const result = await runCli(
-      ['spark', 'search', 'newer_than:7d', '--file', join(dir, '.nis', 'tree.json'), '--max', '10'],
+      ['spark', 'search', 'newer_than:7d', '--file', join(dir, '.treejson', 'tree.json'), '--max', '10'],
       process.cwd()
     );
 

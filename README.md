@@ -1,47 +1,47 @@
-# NIS (`@yinzuoweia/nis`)
+# treejson (`@yinzuoweia/tree-json-cli`)
 
 Agent-friendly JSON tree CLI and JS API.
 
 ## Install
 
 ```bash
-npm i @yinzuoweia/nis
+npm i @yinzuoweia/tree-json-cli
 ```
 
 Run without installing:
 
 ```bash
-npx @yinzuoweia/nis --version
+npx @yinzuoweia/tree-json-cli --version
 ```
 
-> `npx nis` resolves to an unrelated unscoped package on npm. Use `npx @yinzuoweia/nis ...` instead.
+> For deterministic CI/agent usage, prefer `npx @yinzuoweia/tree-json-cli ...`.
 
 ## CLI
 
-Default file path: `./.nis/tree.json`
+Default file path: `./.treejson/tree.json`
 
 ```bash
-nis init [--file <path>] [--force]
-nis add --set key=value... [--parent <id>] [--id <id>] [--file <path>]
-nis get <id> [--file <path>]
-nis ls [parentId] [--max <n>] [--file <path>]
-nis update <id> [--set key=value...] [--unset key...] [--file <path>]
-nis delete <id> [--cascade|--no-cascade] [--yes] [--file <path>]
-nis move <id> --to <newParentId> [--file <path>]
-nis find "<query>" [--max <n>] [--sort <field:asc|desc>] [--fields <csv>] [--file <path>]
-nis validate [--file <path>]
-nis upsert --id <id> --set key=value... [--parent <id>] [--file <path>]
-nis bulk --ops-file <json> [--atomic|--no-atomic] [--file <path>]
-nis snapshot create [--name <name>] [--file <path>]
-nis snapshot restore <snapshotId> [--file <path>]
+treejson init [--file <path>] [--force]
+treejson add --set key=value... [--parent <id>] [--id <id>] [--file <path>]
+treejson get <id> [--file <path>]
+treejson ls [parentId] [--max <n>] [--file <path>]
+treejson update <id> [--set key=value...] [--unset key...] [--file <path>]
+treejson delete <id> [--cascade|--no-cascade] [--yes] [--file <path>]
+treejson move <id> --to <newParentId> [--file <path>]
+treejson find "<query>" [--max <n>] [--sort <field:asc|desc>] [--fields <csv>] [--file <path>]
+treejson validate [--file <path>]
+treejson upsert --id <id> --set key=value... [--parent <id>] [--file <path>]
+treejson bulk --ops-file <json> [--atomic|--no-atomic] [--file <path>]
+treejson snapshot create [--name <name>] [--file <path>]
+treejson snapshot restore <snapshotId> [--file <path>]
 ```
 
 ### Natural aliases (`spark`)
 
 ```bash
-nis spark search "newer_than:7d tag:idea" --max 10
-nis spark add "summary:idea description:detail" under root
-nis spark delete <id> --yes
+treejson spark search "newer_than:7d tag:idea" --max 10
+treejson spark add "summary:idea description:detail" under root
+treejson spark delete <id> --yes
 ```
 
 ## Query DSL (v1)
@@ -66,7 +66,7 @@ import {
   applyBulk,
   createSnapshot,
   restoreSnapshot,
-} from '@yinzuoweia/nis';
+} from '@yinzuoweia/tree-json-cli';
 ```
 
 ## Output Contract
@@ -81,4 +81,4 @@ CLI always writes machine-readable JSON:
 - Root node is fixed as `root` and immutable.
 - Reserved fields: `id,parent,children,created_at`.
 - Writes are protected by file lock + atomic rename.
-- Snapshot retention default is `20` and can be configured with `NIS_SNAPSHOT_KEEP`.
+- Snapshot retention default is `20` and can be configured with `TREEJSON_SNAPSHOT_KEEP`.

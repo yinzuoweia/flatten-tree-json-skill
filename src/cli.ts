@@ -75,7 +75,7 @@ function outputError(action: string, err: unknown): never {
 }
 
 const program = new Command();
-program.name('nis').description('NIS CLI for JSON tree operations').version(packageVersion);
+program.name('treejson').description('treejson CLI for JSON tree operations').version(packageVersion);
 
 program
   .command('init')
@@ -103,7 +103,7 @@ program
         id: opts.id,
         set: parseSetPairs(opts.set)
       });
-      outputSuccess('add', opts.file ?? '.nis/tree.json', result);
+      outputSuccess('add', opts.file ?? '.treejson/tree.json', result);
     } catch (err) {
       outputError('add', err);
     }
@@ -116,7 +116,7 @@ program
   .action(async (id, opts) => {
     try {
       const result = await getNode(opts.file, id);
-      outputSuccess('get', opts.file ?? '.nis/tree.json', result);
+      outputSuccess('get', opts.file ?? '.treejson/tree.json', result);
     } catch (err) {
       outputError('get', err);
     }
@@ -130,7 +130,7 @@ program
   .action(async (parentId, opts) => {
     try {
       const result = await listChildren(opts.file, parentId, opts.max);
-      outputSuccess('ls', opts.file ?? '.nis/tree.json', result);
+      outputSuccess('ls', opts.file ?? '.treejson/tree.json', result);
     } catch (err) {
       outputError('ls', err);
     }
@@ -148,7 +148,7 @@ program
         set: parseSetPairs(opts.set ?? []),
         unset: opts.unset ?? []
       });
-      outputSuccess('update', opts.file ?? '.nis/tree.json', result);
+      outputSuccess('update', opts.file ?? '.treejson/tree.json', result);
     } catch (err) {
       outputError('update', err);
     }
@@ -164,7 +164,7 @@ program
   .action(async (id, opts) => {
     try {
       const result = await deleteNode(opts.file, id, { cascade: opts.cascade !== false, yes: Boolean(opts.yes) });
-      outputSuccess(opts.yes ? 'delete' : 'delete_preview', opts.file ?? '.nis/tree.json', result);
+      outputSuccess(opts.yes ? 'delete' : 'delete_preview', opts.file ?? '.treejson/tree.json', result);
     } catch (err) {
       outputError('delete', err);
     }
@@ -178,7 +178,7 @@ program
   .action(async (id, opts) => {
     try {
       const result = await moveNode(opts.file, id, opts.to);
-      outputSuccess('move', opts.file ?? '.nis/tree.json', result);
+      outputSuccess('move', opts.file ?? '.treejson/tree.json', result);
     } catch (err) {
       outputError('move', err);
     }
@@ -199,7 +199,7 @@ program
         sort: opts.sort,
         fields
       });
-      outputSuccess('find', opts.file ?? '.nis/tree.json', result);
+      outputSuccess('find', opts.file ?? '.treejson/tree.json', result);
     } catch (err) {
       outputError('find', err);
     }
@@ -211,7 +211,7 @@ program
   .action(async (opts) => {
     try {
       const result = await validateTree(opts.file);
-      outputSuccess('validate', opts.file ?? '.nis/tree.json', result, result.warnings);
+      outputSuccess('validate', opts.file ?? '.treejson/tree.json', result, result.warnings);
     } catch (err) {
       outputError('validate', err);
     }
@@ -230,7 +230,7 @@ program
         parent: opts.parent,
         set: parseSetPairs(opts.set)
       });
-      outputSuccess('upsert', opts.file ?? '.nis/tree.json', result);
+      outputSuccess('upsert', opts.file ?? '.treejson/tree.json', result);
     } catch (err) {
       outputError('upsert', err);
     }
@@ -245,7 +245,7 @@ program
   .action(async (opts) => {
     try {
       const result = await applyBulkFromOpsFile(opts.file, { opsFile: opts.opsFile, atomic: opts.atomic !== false });
-      outputSuccess('bulk', opts.file ?? '.nis/tree.json', result);
+      outputSuccess('bulk', opts.file ?? '.treejson/tree.json', result);
     } catch (err) {
       outputError('bulk', err);
     }
@@ -260,7 +260,7 @@ snapshot
   .action(async (opts) => {
     try {
       const result = await createSnapshot(opts.file, opts.name);
-      outputSuccess('snapshot_create', opts.file ?? '.nis/tree.json', result);
+      outputSuccess('snapshot_create', opts.file ?? '.treejson/tree.json', result);
     } catch (err) {
       outputError('snapshot_create', err);
     }
@@ -273,7 +273,7 @@ snapshot
   .action(async (snapshotId, opts) => {
     try {
       const result = await restoreSnapshot(opts.file, snapshotId);
-      outputSuccess('snapshot_restore', opts.file ?? '.nis/tree.json', result);
+      outputSuccess('snapshot_restore', opts.file ?? '.treejson/tree.json', result);
     } catch (err) {
       outputError('snapshot_restore', err);
     }
@@ -293,7 +293,7 @@ spark
         max: opts.max,
         sort: opts.sort
       });
-      outputSuccess('find', opts.file ?? '.nis/tree.json', result);
+      outputSuccess('find', opts.file ?? '.treejson/tree.json', result);
     } catch (err) {
       outputError('find', err);
     }
@@ -316,7 +316,7 @@ spark
         id: opts.id,
         set: parseSparkExpression(expression)
       });
-      outputSuccess('add', opts.file ?? '.nis/tree.json', result);
+      outputSuccess('add', opts.file ?? '.treejson/tree.json', result);
     } catch (err) {
       outputError('add', err);
     }
@@ -333,7 +333,7 @@ spark
         cascade: true,
         yes: Boolean(opts.yes)
       });
-      outputSuccess(opts.yes ? 'delete' : 'delete_preview', opts.file ?? '.nis/tree.json', result);
+      outputSuccess(opts.yes ? 'delete' : 'delete_preview', opts.file ?? '.treejson/tree.json', result);
     } catch (err) {
       outputError('delete', err);
     }

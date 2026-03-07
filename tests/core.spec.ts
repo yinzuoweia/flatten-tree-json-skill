@@ -14,20 +14,19 @@ import {
 
 describe('core tree api', () => {
   it('initializes with fixed root node', async () => {
-    const dir = await mkdtemp(join(tmpdir(), 'nis-'));
-    const filePath = join(dir, '.nis', 'tree.json');
+    const dir = await mkdtemp(join(tmpdir(), 'treejson-'));
+    const filePath = join(dir, '.treejson', 'tree.json');
 
     await initTree(filePath, { force: true });
 
     const raw = JSON.parse(await readFile(filePath, 'utf-8'));
-    expect(raw.root_id).toBe('root');
-    expect(raw.nodes.root.id).toBe('root');
-    expect(raw.nodes.root.parent).toBeNull();
+    expect(raw.root.id).toBe('root');
+    expect(raw.root.parent).toBeNull();
   });
 
   it('supports add and delete preview/confirm cascade', async () => {
-    const dir = await mkdtemp(join(tmpdir(), 'nis-'));
-    const filePath = join(dir, '.nis', 'tree.json');
+    const dir = await mkdtemp(join(tmpdir(), 'treejson-'));
+    const filePath = join(dir, '.treejson', 'tree.json');
 
     await initTree(filePath, { force: true });
     const a = await addNode(filePath, { parent: 'root', set: { summary: 'A' } });
@@ -45,8 +44,8 @@ describe('core tree api', () => {
   });
 
   it('bulk atomic rolls back on failure', async () => {
-    const dir = await mkdtemp(join(tmpdir(), 'nis-'));
-    const filePath = join(dir, '.nis', 'tree.json');
+    const dir = await mkdtemp(join(tmpdir(), 'treejson-'));
+    const filePath = join(dir, '.treejson', 'tree.json');
 
     await initTree(filePath, { force: true });
     await expect(
@@ -57,12 +56,12 @@ describe('core tree api', () => {
     ).rejects.toThrow();
 
     const raw = JSON.parse(await readFile(filePath, 'utf-8'));
-    expect(Object.keys(raw.nodes)).toEqual(['root']);
+    expect(Object.keys(raw)).toEqual(['root']);
   });
 
   it('creates and restores snapshot', async () => {
-    const dir = await mkdtemp(join(tmpdir(), 'nis-'));
-    const filePath = join(dir, '.nis', 'tree.json');
+    const dir = await mkdtemp(join(tmpdir(), 'treejson-'));
+    const filePath = join(dir, '.treejson', 'tree.json');
 
     await initTree(filePath, { force: true });
     const first = await addNode(filePath, { parent: 'root', set: { summary: 'V1' } });
@@ -72,6 +71,6 @@ describe('core tree api', () => {
     await restoreSnapshot(filePath, snap.snapshot_id);
 
     const raw = JSON.parse(await readFile(filePath, 'utf-8'));
-    expect(raw.nodes[first.id]).toBeDefined();
+    expect(raw[first.id]).toBeDefined();
   });
 });

@@ -49,7 +49,7 @@ export async function applyBulk(
   ops: Array<Record<string, unknown>>,
   options: Omit<MutateOptions, 'autoSnapshot'> & { atomic?: boolean } = {}
 ): Promise<{ applied: number; results: Array<Record<string, unknown>> }> {
-  const tempOpsFile = join(tmpdir(), `.nis-bulk-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.json`);
+  const tempOpsFile = join(tmpdir(), `.treejson-bulk-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.json`);
   await writeFile(tempOpsFile, JSON.stringify(ops), 'utf-8');
   try {
     return await applyBulkFromFile(

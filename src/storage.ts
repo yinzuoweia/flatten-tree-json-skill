@@ -23,7 +23,7 @@ export function resolveTreePath(options: ResolvePathOptions = {}): string {
   if (options.filePath) {
     return resolve(options.filePath);
   }
-  return resolve('.nis/tree.json');
+  return resolve('.treejson/tree.json');
 }
 
 export function getLockPath(filePath: string): string {
@@ -57,7 +57,7 @@ export async function readTree(filePath: string): Promise<TreeFile> {
     return validated.data;
   } catch (err) {
     if (isNodeErrorWithCode(err) && err.code === 'ENOENT') {
-      throw new CliError('FILE_NOT_FOUND', `tree file not found: ${filePath}`, 'run `nis init` first');
+      throw new CliError('FILE_NOT_FOUND', `tree file not found: ${filePath}`, 'run `treejson init` first');
     }
     if (err instanceof CliError) {
       throw err;

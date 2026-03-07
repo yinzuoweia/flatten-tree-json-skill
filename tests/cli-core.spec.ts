@@ -17,9 +17,14 @@ describe('cli core commands', () => {
     expect(out.stdout.trim()).toBe(pkg.version);
   });
 
+  it('uses treejson as command name in help output', async () => {
+    const out = await runCli(['--help']);
+    expect(out.stdout).toContain('Usage: treejson');
+  });
+
   it('supports init/add/update/delete preview and confirm', async () => {
-    const dir = await mkdtemp(join(tmpdir(), 'nis-cli-core-'));
-    const treeFile = join(dir, '.nis', 'tree.json');
+    const dir = await mkdtemp(join(tmpdir(), 'treejson-cli-core-'));
+    const treeFile = join(dir, '.treejson', 'tree.json');
 
     const initOut = await runCli(['init', '--file', treeFile, '--force']);
     expect(JSON.parse(initOut.stdout).ok).toBe(true);
