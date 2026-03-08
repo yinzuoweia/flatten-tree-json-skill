@@ -4,8 +4,7 @@
   "description": "treejson CLI for agent-friendly JSON tree operations",
   "type": "module",
   "bin": {
-    "treejson": "dist/cli.js",
-    "nis": "dist/cli.js"
+    "treejson": "dist/cli.js"
   },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

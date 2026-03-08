@@ -12,9 +12,21 @@ async function runCli(args: string[]) {
 
 describe('cli core commands', () => {
   it('reports package version with --version', async () => {
-    const pkg = JSON.parse(readFileSync(join(process.cwd(), 'package.json'), 'utf8')) as { version: string };
+    const pkg = JSON.parse(readFileSync(join(process.cwd(), 'package.json'), 'utf8')) as {
+      version: string;
+      bin: Record<string, string>;
+    };
     const out = await runCli(['--version']);
     expect(out.stdout.trim()).toBe(pkg.version);
+  });
+
+  it('exposes only treejson binary in package metadata', () => {
+    const pkg = JSON.parse(readFileSync(join(process.cwd(), 'package.json'), 'utf8')) as {
+      bin: Record<string, string>;
+    };
+    expect(pkg.bin).toEqual({
+      treejson: 'dist/cli.js'
+    });
   });
 
   it('uses treejson as command name in help output', async () => {

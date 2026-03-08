@@ -58,7 +58,7 @@ export type SnapshotInfo = {
 };
 
 function defaultSnapshotKeep(): number {
-  const raw = process.env.TREEJSON_SNAPSHOT_KEEP ?? process.env.NIS_SNAPSHOT_KEEP;
+  const raw = process.env.TREEJSON_SNAPSHOT_KEEP;
   if (!raw) {
     return 20;
   }
