@@ -3,7 +3,7 @@ import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { basename, dirname, join, resolve } from 'node:path';
 import { z } from 'zod';
 import { CliError, isNodeErrorWithCode } from './errors.js';
-import { NOVIX_ROOT_DESCRIPTION, NOVIX_ROOT_SUMMARY, collectNovixTreeErrors } from './novix.js';
+import { NOVIX_ROOT_DESCRIPTION, NOVIX_ROOT_NEXT_ACTION, NOVIX_ROOT_SUMMARY, collectNovixTreeErrors } from './novix.js';
 import { ROOT_ID, type TreeFile } from './types.js';
 
 const nodeSchema = z
@@ -69,6 +69,7 @@ export function createInitialTree(now: Date = new Date()): TreeFile {
       created_at: ts,
       summary: NOVIX_ROOT_SUMMARY,
       description: NOVIX_ROOT_DESCRIPTION,
+      next_action: NOVIX_ROOT_NEXT_ACTION,
       references: []
     }
   };

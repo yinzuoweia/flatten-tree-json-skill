@@ -87,6 +87,7 @@ const topLevelDescription = [
   'Node schema:',
   '  summary: string',
   '  description: string',
+  '  next_action: string',
   '  references: string[]'
 ].join('\n');
 
@@ -112,9 +113,9 @@ program
 
 program
   .command('add')
-  .description('Add a node. Allowed business fields: summary, description, references.')
+  .description('Add a node. Allowed business fields: summary, description, next_action, references.')
   .requiredOption('--set <pair...>', 'key=value pairs')
-  .addHelpText('after', '\nAllowed fields: summary, description, references\nMissing fields default to empty values.')
+  .addHelpText('after', '\nAllowed fields: summary, description, next_action, references\nMissing fields default to empty values.')
   .option('--file <path>', fileOptionDescription)
   .option('--parent <id>')
   .option('--id <id>')
@@ -163,8 +164,8 @@ program
 program
   .command('update')
   .argument('<id>')
-  .description('Update summary, description, or references while preserving the fixed schema.')
-  .addHelpText('after', '\nAllowed fields: summary, description, references')
+  .description('Update summary, description, next_action, or references while preserving the fixed schema.')
+  .addHelpText('after', '\nAllowed fields: summary, description, next_action, references')
   .option('--file <path>', fileOptionDescription)
   .option('--set <pair...>')
   .option('--unset <key...>')
@@ -250,11 +251,11 @@ program
 
 program
   .command('upsert')
-  .description('Create or update a node. Allowed business fields: summary, description, references.')
+  .description('Create or update a node. Allowed business fields: summary, description, next_action, references.')
   .requiredOption('--id <id>')
   .requiredOption('--set <pair...>')
   .option('--parent <id>')
-  .addHelpText('after', '\nAllowed fields: summary, description, references\nMissing fields default to empty values.')
+  .addHelpText('after', '\nAllowed fields: summary, description, next_action, references\nMissing fields default to empty values.')
   .option('--file <path>', fileOptionDescription)
   .action(async (opts) => {
     try {

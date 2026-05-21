@@ -36,6 +36,7 @@ describe('cli core commands', () => {
     expect(out.stdout).toContain('fixed node schema');
     expect(out.stdout).toContain('summary');
     expect(out.stdout).toContain('description');
+    expect(out.stdout).toContain('next_action');
     expect(out.stdout).toContain('references');
   });
 
@@ -54,6 +55,8 @@ describe('cli core commands', () => {
       'summary=hello',
       '--set',
       'description=hello-description',
+      '--set',
+      'next_action=Open a focused follow-up session with scope, inputs, method, validation, and deliverable.',
       '--set',
       'references=[\"https://example.com/hello\"]'
     ]);
@@ -103,6 +106,7 @@ describe('cli core commands', () => {
     const getPayload = JSON.parse(getOut.stdout);
     expect(getPayload.result.summary).toBe('draft');
     expect(getPayload.result.description).toBe('');
+    expect(getPayload.result.next_action).toBe('');
     expect(getPayload.result.references).toEqual([]);
 
     const validateOut = await runCli(['validate', '--file', treeFile]);
@@ -110,6 +114,7 @@ describe('cli core commands', () => {
     expect(validatePayload.result.valid).toBe(true);
     expect(validatePayload.result.errors).toEqual([]);
     expect(validatePayload.warnings.join('\n')).toContain(`node '${id}' has empty description`);
+    expect(validatePayload.warnings.join('\n')).toContain(`node '${id}' has empty next_action`);
     expect(validatePayload.warnings.join('\n')).toContain(`node '${id}' has no references`);
   });
 
@@ -147,6 +152,7 @@ describe('cli core commands', () => {
     const addHelp = await runCli(['add', '--help']);
     expect(addHelp.stdout).toContain('summary');
     expect(addHelp.stdout).toContain('description');
+    expect(addHelp.stdout).toContain('next_action');
     expect(addHelp.stdout).toContain('references');
     expect(addHelp.stdout).toContain('Missing fields default to empty values');
     expect(addHelp.stdout).not.toContain('Novix idea tree');
@@ -173,6 +179,8 @@ describe('cli core commands', () => {
         'summary=hello',
         '--set',
         'description=hello-description',
+        '--set',
+        'next_action=Open a focused follow-up session with scope, inputs, method, validation, and deliverable.',
         '--set',
         'references=[\"https://example.com/hello\"]',
         '--set',

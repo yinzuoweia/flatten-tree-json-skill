@@ -28,6 +28,8 @@ describe('core tree api', () => {
     expect(typeof raw.root.description).toBe('string');
     expect(raw.root.description.length).toBeGreaterThan(0);
     expect(raw.root.references).toEqual([]);
+    expect(typeof raw.root.next_action).toBe('string');
+    expect(raw.root.next_action.length).toBeGreaterThan(0);
   });
 
   it('supports add and delete preview/confirm cascade', async () => {
@@ -40,6 +42,7 @@ describe('core tree api', () => {
       set: {
         summary: 'A',
         description: 'A description',
+        next_action: 'Use a focused session to expand A into a concrete research task.',
         references: ['https://example.com/a']
       }
     });
@@ -48,6 +51,7 @@ describe('core tree api', () => {
       set: {
         summary: 'B',
         description: 'B description',
+        next_action: 'Use a follow-up session to refine B.',
         references: ['https://example.com/b']
       }
     });
@@ -76,6 +80,7 @@ describe('core tree api', () => {
           set: {
             summary: 'ok',
             description: 'ok description',
+            next_action: 'Turn this node into a concrete session.',
             references: ['https://example.com/ok']
           }
         },
@@ -97,6 +102,7 @@ describe('core tree api', () => {
       set: {
         summary: 'V1',
         description: 'V1 description',
+        next_action: 'Continue from V1.',
         references: ['https://example.com/v1']
       }
     });
@@ -122,6 +128,7 @@ describe('core tree api', () => {
         set: {
           summary: 'A',
           description: 'A description',
+          next_action: 'Turn A into a concrete session.',
           references: ['https://example.com/a'],
           type: 'idea'
         }
@@ -144,17 +151,20 @@ describe('core tree api', () => {
     const raw = JSON.parse(await readFile(filePath, 'utf-8'));
     expect(raw[added.id].summary).toBe('Draft idea');
     expect(raw[added.id].description).toBe('');
+    expect(raw[added.id].next_action).toBe('');
     expect(raw[added.id].references).toEqual([]);
 
     const initialReport = await validateTree(filePath);
     expect(initialReport.valid).toBe(true);
     expect(initialReport.errors).toEqual([]);
     expect(initialReport.warnings.join('\n')).toContain(`node '${added.id}' has empty description`);
+    expect(initialReport.warnings.join('\n')).toContain(`node '${added.id}' has empty next_action`);
     expect(initialReport.warnings.join('\n')).toContain(`node '${added.id}' has no references`);
 
     await updateNode(filePath, added.id, {
       set: {
         description: 'Expanded description',
+        next_action: 'Open a Method Design session that specifies scope, inputs, method, validation, and deliverable.',
         references: ['https://example.com/draft']
       }
     });
@@ -175,11 +185,15 @@ describe('core tree api', () => {
       set: {
         summary: 'A',
         description: 'A description',
+        next_action: 'Turn A into a concrete session.',
         references: ['https://example.com/a']
       }
     });
 
     await expect(updateNode(filePath, node.id, { unset: ['summary'] })).rejects.toMatchObject({
+      code: 'SCHEMA_INVALID'
+    });
+    await expect(updateNode(filePath, node.id, { unset: ['next_action'] })).rejects.toMatchObject({
       code: 'SCHEMA_INVALID'
     });
   });

@@ -1,13 +1,14 @@
 import { CliError } from './errors.js';
 import { RESERVED_FIELDS, ROOT_ID, type TreeFile, type TreeNode } from './types.js';
 
-export const NOVIX_MUTABLE_FIELDS = ['summary', 'description', 'references'] as const;
+export const NOVIX_MUTABLE_FIELDS = ['summary', 'description', 'next_action', 'references'] as const;
 
 const NOVIX_MUTABLE_FIELD_SET = new Set<string>(NOVIX_MUTABLE_FIELDS);
 const NOVIX_ALLOWED_FIELD_SET = new Set<string>([...RESERVED_FIELDS, ...NOVIX_MUTABLE_FIELDS]);
 
 export const NOVIX_ROOT_SUMMARY = 'Novix idea tree';
 export const NOVIX_ROOT_DESCRIPTION = 'Root node for Novix idea exploration.';
+export const NOVIX_ROOT_NEXT_ACTION = 'Use child nodes as actionable follow-up ideas.';
 
 function hasOwn(value: object, key: string): boolean {
   return Object.prototype.hasOwnProperty.call(value, key);
@@ -25,6 +26,7 @@ export function withNovixDefaults(input: Record<string, unknown>): Record<string
   return {
     summary: '',
     description: '',
+    next_action: '',
     references: [],
     ...input
   };
@@ -36,7 +38,7 @@ export function assertOnlyNovixMutableFields(input: Record<string, unknown>): vo
       throw new CliError(
         'SCHEMA_INVALID',
         `field '${key}' is not allowed in novix nodes`,
-        'allowed fields: summary, description, references'
+        'allowed fields: summary, description, next_action, references'
       );
     }
   }
@@ -48,7 +50,7 @@ export function assertNovixUnsetAllowed(fields: string[]): void {
       throw new CliError(
         'SCHEMA_INVALID',
         `field '${key}' is not allowed in novix nodes`,
-        'allowed fields: summary, description, references'
+        'allowed fields: summary, description, next_action, references'
       );
     }
     throw new CliError('SCHEMA_INVALID', `field '${key}' is required and cannot be unset`);
@@ -74,6 +76,12 @@ export function collectNovixNodeErrors(nodeId: string, node: TreeNode): string[]
     errors.push(`node '${nodeId}' must define description`);
   } else if (!hasString(node.description)) {
     errors.push(`node '${nodeId}' description must be a string`);
+  }
+
+  if (!hasOwn(node, 'next_action')) {
+    errors.push(`node '${nodeId}' must define next_action`);
+  } else if (!hasString(node.next_action)) {
+    errors.push(`node '${nodeId}' next_action must be a string`);
   }
 
   if (!hasOwn(node, 'references')) {
@@ -107,6 +115,10 @@ export function collectNovixNodeWarnings(nodeId: string, node: TreeNode): string
 
   if (hasOwn(node, 'description') && hasString(node.description) && !hasNonEmptyString(node.description)) {
     warnings.push(`node '${nodeId}' has empty description`);
+  }
+
+  if (hasOwn(node, 'next_action') && hasString(node.next_action) && !hasNonEmptyString(node.next_action)) {
+    warnings.push(`node '${nodeId}' has empty next_action`);
   }
 
   if (nodeId !== ROOT_ID && hasOwn(node, 'references') && Array.isArray(node.references) && node.references.length === 0) {

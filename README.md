@@ -24,11 +24,12 @@ This `novix` release line enforces a fixed node schema for every node:
 {
   "summary": "string",
   "description": "string",
+  "next_action": "string",
   "references": ["https://example.com"]
 }
 ```
 
-Only `summary`, `description`, and `references` are allowed as business fields.
+Only `summary`, `description`, `next_action`, and `references` are allowed as business fields.
 Missing fields default to empty values on `add` and `upsert`.
 
 Default file path:
@@ -89,8 +90,8 @@ CLI always writes machine-readable JSON:
 
 - Root node is fixed as `root` and immutable.
 - Reserved fields: `id,parent,children,created_at`.
-- Fixed business fields: `summary,description,references`.
-- `validate` reports incomplete content as warnings, such as empty `summary`, empty `description`, or empty non-root `references`.
+- Fixed business fields: `summary,description,next_action,references`.
+- `validate` reports incomplete content as warnings, such as empty `summary`, empty `description`, empty `next_action`, or empty non-root `references`.
 - Writes are protected by file lock + atomic rename.
 - Snapshot retention default is `20` and can be configured with `TREEJSON_SNAPSHOT_KEEP`.
 - Snapshots are stored under the tree file sibling directory: `.snapshot/`.

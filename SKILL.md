@@ -29,9 +29,8 @@ For deterministic CI/agent usage, prefer scoped execution:
 ## When to Use
 
 Use this skill when you need to:
-- Initialize a tree file (`.treejson/tree.json` or custom path)
+- Initialize a Novix idea tree file (`*idea-tree.json` or custom path)
 - Add/update/delete/move/search nodes in bash
-- Run deterministic natural aliases (`treejson spark ...`)
 - Execute multi-step atomic changes with rollback (`bulk --atomic`)
 - Create or restore snapshots for safe recovery
 
@@ -48,21 +47,25 @@ If the command is unavailable, install/build first, then retry.
 Always set a file path explicitly in agent workflows:
 
 ```bash
-TREE_FILE="/abs/path/to/.treejson/tree.json"
+TREE_FILE="/abs/path/to/novix-idea-tree.json"
 ```
 
 ## Canonical Commands
 
 ```bash
 treejson init --file "$TREE_FILE" [--force]
-treejson add --file "$TREE_FILE" --parent root --set summary=Idea --set tag=idea
+treejson add --file "$TREE_FILE" --parent root \
+  --set summary=Idea \
+  --set description=Context \
+  --set next_action="Open a focused follow-up session with scope, inputs, method, validation, and deliverable." \
+  --set references='[]'
 treejson get <id> --file "$TREE_FILE"
 treejson ls [parentId] --file "$TREE_FILE" --max 20
-treejson update <id> --file "$TREE_FILE" --set score=0.9 --unset temp_field
+treejson update <id> --file "$TREE_FILE" --set description=Updated --set next_action="Refine this into a concrete session."
 treejson delete <id> --file "$TREE_FILE"            # preview only
 treejson delete <id> --file "$TREE_FILE" --yes      # execute cascade delete
 treejson move <id> --to <newParentId> --file "$TREE_FILE"
-treejson find "newer_than:7d tag:idea" --file "$TREE_FILE" --max 10 --sort created_at:desc
+treejson find "newer_than:7d summary:idea" --file "$TREE_FILE" --max 10 --sort created_at:desc
 treejson validate --file "$TREE_FILE"
 treejson upsert --id node_a --parent root --set summary=Updated --file "$TREE_FILE"
 treejson bulk --ops-file /abs/path/ops.json --file "$TREE_FILE" --atomic
@@ -70,15 +73,20 @@ treejson snapshot create --file "$TREE_FILE" --name before_bulk
 treejson snapshot restore <snapshotId> --file "$TREE_FILE"
 ```
 
-## Natural Alias Layer (`spark`)
+## Node Schema
 
-Use alias only when natural syntax helps readability; canonical commands remain preferred for strict automation.
+Every node uses the fixed Novix schema:
 
-```bash
-treejson spark search "newer_than:7d tag:idea" --file "$TREE_FILE" --max 10
-treejson spark add "summary:NewIdea tag:idea" under root --file "$TREE_FILE"
-treejson spark delete <id> --file "$TREE_FILE" --yes
+```json
+{
+  "summary": "string",
+  "description": "string",
+  "next_action": "string",
+  "references": ["https://example.com"]
+}
 ```
+
+Missing fields default to empty strings or `[]` on `add` and `upsert`.
 
 ## Safe Mutation Pattern (Agent Default)
 
@@ -103,8 +111,8 @@ treejson bulk --ops-file /abs/path/ops.json --file "$TREE_FILE" --atomic
 ## Query DSL Quick Reference
 
 - Full text term: `transformer`
-- Field filter: `tag:idea`, `parent:root`
-- Comparator: `score>=0.8`, `created_at>1710000000`
+- Field filter: `summary:idea`, `parent:root`
+- Comparator: `created_at>1710000000`
 - Relative time: `newer_than:7d`, `older_than:30d`
 - Multiple tokens are AND by default
 
@@ -136,8 +144,8 @@ Common error codes and next actions:
 
 ```json
 [
-  { "action": "add", "parent": "root", "set": { "summary": "A" } },
-  { "action": "update", "id": "node_a", "set": { "score": 0.9 } },
+  { "action": "add", "parent": "root", "set": { "summary": "A", "description": "", "next_action": "", "references": [] } },
+  { "action": "update", "id": "node_a", "set": { "description": "Updated", "next_action": "Open a focused follow-up session." } },
   { "action": "delete", "id": "node_b", "cascade": true, "yes": true }
 ]
 ```
