@@ -1,26 +1,27 @@
-import { mkdtemp } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { execa } from 'execa';
+import { join } from 'node:path';
 
-async function runCli(args: string[], cwd: string) {
+async function runCli(args: string[], cwd = process.cwd()) {
   const bin = join(process.cwd(), 'node_modules', '.bin', 'tsx');
-  return execa(bin, ['src/cli.ts', ...args], { cwd });
+  const cliEntry = join(process.cwd(), 'src', 'cli.ts');
+  return execa(bin, [cliEntry, ...args], { cwd });
 }
 
-describe('cli spark aliases', () => {
-  it('supports spark search alias', async () => {
-    const dir = await mkdtemp(join(tmpdir(), 'treejson-cli-'));
-    await runCli(['init', '--file', join(dir, '.treejson', 'tree.json'), '--force'], process.cwd());
+describe('cli command surface', () => {
+  it('does not expose spark commands in novix help', async () => {
+    const result = await runCli(['--help']);
+    expect(result.stdout).not.toContain('\nspark');
+  });
 
-    const result = await runCli(
-      ['spark', 'search', 'newer_than:7d', '--file', join(dir, '.treejson', 'tree.json'), '--max', '10'],
-      process.cwd()
-    );
-
-    const out = JSON.parse(result.stdout);
-    expect(out.ok).toBe(true);
-    expect(out.action).toBe('find');
+  it('rejects spark commands in novix cli', async () => {
+    try {
+      await runCli(['spark', 'search', 'newer_than:7d']);
+      throw new Error('expected command to fail');
+    } catch (err) {
+      const execaErr = err as { exitCode?: number; stderr?: string };
+      expect(execaErr.exitCode).not.toBe(0);
+      expect(execaErr.stderr ?? '').toContain("unknown command 'spark'");
+    }
   });
 });

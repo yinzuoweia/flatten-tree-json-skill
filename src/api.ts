@@ -12,7 +12,6 @@ import {
   listChildren,
   moveNode,
   parseSetPairs,
-  parseSparkExpression,
   restoreSnapshot,
   updateNode,
   upsertNode,
@@ -29,7 +28,7 @@ import type {
   UpdateInput
 } from './core.js';
 
-export { initTree, addNode, getNode, listChildren, updateNode, deleteNode, moveNode, validateTree, upsertNode, createSnapshot, restoreSnapshot, parseSetPairs, parseSparkExpression };
+export { initTree, addNode, getNode, listChildren, updateNode, deleteNode, moveNode, validateTree, upsertNode, createSnapshot, restoreSnapshot, parseSetPairs };
 
 export type { InitOptions, AddInput, UpdateInput, DeleteInput, FindInput, BulkInput, SnapshotInfo, MutateOptions };
 

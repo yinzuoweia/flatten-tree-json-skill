@@ -2,6 +2,7 @@
 import { Command } from 'commander';
 import { createRequire } from 'node:module';
 import { CliError } from './errors.js';
+import { resolveTreePath } from './storage.js';
 import {
   addNode,
   applyBulkFromOpsFile,
@@ -13,7 +14,6 @@ import {
   listChildren,
   moveNode,
   parseSetPairs,
-  parseSparkExpression,
   restoreSnapshot,
   updateNode,
   upsertNode,
@@ -74,12 +74,32 @@ function outputError(action: string, err: unknown): never {
   process.exit(1);
 }
 
+function outputFile(filePath?: string): string {
+  return filePath ?? resolveTreePath();
+}
+
+const fileOptionDescription =
+  'path to tree file (defaults to /home/novix/workspace/project/novix-idea-tree.json or ./novix-idea-tree.json; file name must end with idea-tree.json)';
+
+const topLevelDescription = [
+  'treejson CLI for Novix fixed-schema nodes',
+  '',
+  'Node schema:',
+  '  summary: string',
+  '  description: string',
+  '  references: string[]'
+].join('\n');
+
 const program = new Command();
-program.name('treejson').description('treejson CLI for JSON tree operations').version(packageVersion);
+program
+  .name('treejson')
+  .description(topLevelDescription)
+  .version(packageVersion);
 
 program
   .command('init')
-  .option('--file <path>')
+  .description('Initialize a tree with a fixed-schema root node.')
+  .option('--file <path>', fileOptionDescription)
   .option('--force', 'overwrite existing tree')
   .action(async (opts) => {
     try {
@@ -92,8 +112,10 @@ program
 
 program
   .command('add')
+  .description('Add a node. Allowed business fields: summary, description, references.')
   .requiredOption('--set <pair...>', 'key=value pairs')
-  .option('--file <path>')
+  .addHelpText('after', '\nAllowed fields: summary, description, references\nMissing fields default to empty values.')
+  .option('--file <path>', fileOptionDescription)
   .option('--parent <id>')
   .option('--id <id>')
   .action(async (opts) => {
@@ -103,7 +125,7 @@ program
         id: opts.id,
         set: parseSetPairs(opts.set)
       });
-      outputSuccess('add', opts.file ?? '.treejson/tree.json', result);
+      outputSuccess('add', outputFile(opts.file), result);
     } catch (err) {
       outputError('add', err);
     }
@@ -112,11 +134,12 @@ program
 program
   .command('get')
   .argument('<id>')
-  .option('--file <path>')
+  .description('Get a node.')
+  .option('--file <path>', fileOptionDescription)
   .action(async (id, opts) => {
     try {
       const result = await getNode(opts.file, id);
-      outputSuccess('get', opts.file ?? '.treejson/tree.json', result);
+      outputSuccess('get', outputFile(opts.file), result);
     } catch (err) {
       outputError('get', err);
     }
@@ -125,12 +148,13 @@ program
 program
   .command('ls')
   .argument('[parentId]')
-  .option('--file <path>')
+  .description('List child nodes under a parent.')
+  .option('--file <path>', fileOptionDescription)
   .option('--max <n>', 'limit', (v) => Number(v))
   .action(async (parentId, opts) => {
     try {
       const result = await listChildren(opts.file, parentId, opts.max);
-      outputSuccess('ls', opts.file ?? '.treejson/tree.json', result);
+      outputSuccess('ls', outputFile(opts.file), result);
     } catch (err) {
       outputError('ls', err);
     }
@@ -139,7 +163,9 @@ program
 program
   .command('update')
   .argument('<id>')
-  .option('--file <path>')
+  .description('Update summary, description, or references while preserving the fixed schema.')
+  .addHelpText('after', '\nAllowed fields: summary, description, references')
+  .option('--file <path>', fileOptionDescription)
   .option('--set <pair...>')
   .option('--unset <key...>')
   .action(async (id, opts) => {
@@ -148,7 +174,7 @@ program
         set: parseSetPairs(opts.set ?? []),
         unset: opts.unset ?? []
       });
-      outputSuccess('update', opts.file ?? '.treejson/tree.json', result);
+      outputSuccess('update', outputFile(opts.file), result);
     } catch (err) {
       outputError('update', err);
     }
@@ -157,14 +183,15 @@ program
 program
   .command('delete')
   .argument('<id>')
-  .option('--file <path>')
+  .description('Preview or delete a node.')
+  .option('--file <path>', fileOptionDescription)
   .option('--cascade', 'cascade delete')
   .option('--no-cascade', 'disable cascade delete')
   .option('--yes', 'confirm delete')
   .action(async (id, opts) => {
     try {
       const result = await deleteNode(opts.file, id, { cascade: opts.cascade !== false, yes: Boolean(opts.yes) });
-      outputSuccess(opts.yes ? 'delete' : 'delete_preview', opts.file ?? '.treejson/tree.json', result);
+      outputSuccess(opts.yes ? 'delete' : 'delete_preview', outputFile(opts.file), result);
     } catch (err) {
       outputError('delete', err);
     }
@@ -174,11 +201,12 @@ program
   .command('move')
   .argument('<id>')
   .requiredOption('--to <id>')
-  .option('--file <path>')
+  .description('Move a node within the tree.')
+  .option('--file <path>', fileOptionDescription)
   .action(async (id, opts) => {
     try {
       const result = await moveNode(opts.file, id, opts.to);
-      outputSuccess('move', opts.file ?? '.treejson/tree.json', result);
+      outputSuccess('move', outputFile(opts.file), result);
     } catch (err) {
       outputError('move', err);
     }
@@ -187,7 +215,8 @@ program
 program
   .command('find')
   .argument('<query>')
-  .option('--file <path>')
+  .description('Search nodes in the tree.')
+  .option('--file <path>', fileOptionDescription)
   .option('--max <n>', 'limit', (v) => Number(v))
   .option('--sort <spec>')
   .option('--fields <csv>')
@@ -199,7 +228,7 @@ program
         sort: opts.sort,
         fields
       });
-      outputSuccess('find', opts.file ?? '.treejson/tree.json', result);
+      outputSuccess('find', outputFile(opts.file), result);
     } catch (err) {
       outputError('find', err);
     }
@@ -207,11 +236,13 @@ program
 
 program
   .command('validate')
-  .option('--file <path>')
+  .description('Validate tree structure and fixed node schema. Incomplete node content is reported as warnings.')
+  .addHelpText('after', '\nRoot references may be empty. Non-root empty references are reported as warnings.')
+  .option('--file <path>', fileOptionDescription)
   .action(async (opts) => {
     try {
       const result = await validateTree(opts.file);
-      outputSuccess('validate', opts.file ?? '.treejson/tree.json', result, result.warnings);
+      outputSuccess('validate', outputFile(opts.file), result, result.warnings);
     } catch (err) {
       outputError('validate', err);
     }
@@ -219,10 +250,12 @@ program
 
 program
   .command('upsert')
+  .description('Create or update a node. Allowed business fields: summary, description, references.')
   .requiredOption('--id <id>')
   .requiredOption('--set <pair...>')
   .option('--parent <id>')
-  .option('--file <path>')
+  .addHelpText('after', '\nAllowed fields: summary, description, references\nMissing fields default to empty values.')
+  .option('--file <path>', fileOptionDescription)
   .action(async (opts) => {
     try {
       const result = await upsertNode(opts.file, {
@@ -230,7 +263,7 @@ program
         parent: opts.parent,
         set: parseSetPairs(opts.set)
       });
-      outputSuccess('upsert', opts.file ?? '.treejson/tree.json', result);
+      outputSuccess('upsert', outputFile(opts.file), result);
     } catch (err) {
       outputError('upsert', err);
     }
@@ -238,14 +271,15 @@ program
 
 program
   .command('bulk')
+  .description('Apply bulk mutations to the tree.')
   .requiredOption('--ops-file <path>')
-  .option('--file <path>')
+  .option('--file <path>', fileOptionDescription)
   .option('--atomic', 'enable atomic rollback')
   .option('--no-atomic', 'disable atomic rollback')
   .action(async (opts) => {
     try {
       const result = await applyBulkFromOpsFile(opts.file, { opsFile: opts.opsFile, atomic: opts.atomic !== false });
-      outputSuccess('bulk', opts.file ?? '.treejson/tree.json', result);
+      outputSuccess('bulk', outputFile(opts.file), result);
     } catch (err) {
       outputError('bulk', err);
     }
@@ -255,12 +289,13 @@ const snapshot = program.command('snapshot');
 
 snapshot
   .command('create')
-  .option('--file <path>')
+  .description('Create a snapshot of the current tree.')
+  .option('--file <path>', fileOptionDescription)
   .option('--name <name>')
   .action(async (opts) => {
     try {
       const result = await createSnapshot(opts.file, opts.name);
-      outputSuccess('snapshot_create', opts.file ?? '.treejson/tree.json', result);
+      outputSuccess('snapshot_create', outputFile(opts.file), result);
     } catch (err) {
       outputError('snapshot_create', err);
     }
@@ -269,73 +304,14 @@ snapshot
 snapshot
   .command('restore')
   .argument('<snapshotId>')
-  .option('--file <path>')
+  .description('Restore the tree from a snapshot.')
+  .option('--file <path>', fileOptionDescription)
   .action(async (snapshotId, opts) => {
     try {
       const result = await restoreSnapshot(opts.file, snapshotId);
-      outputSuccess('snapshot_restore', opts.file ?? '.treejson/tree.json', result);
+      outputSuccess('snapshot_restore', outputFile(opts.file), result);
     } catch (err) {
       outputError('snapshot_restore', err);
-    }
-  });
-
-const spark = program.command('spark').description('natural-language style aliases');
-
-spark
-  .command('search')
-  .argument('<query>')
-  .option('--file <path>')
-  .option('--max <n>', 'limit', (v) => Number(v))
-  .option('--sort <spec>')
-  .action(async (query, opts) => {
-    try {
-      const result = await findNodes(opts.file, query, {
-        max: opts.max,
-        sort: opts.sort
-      });
-      outputSuccess('find', opts.file ?? '.treejson/tree.json', result);
-    } catch (err) {
-      outputError('find', err);
-    }
-  });
-
-spark
-  .command('add')
-  .argument('<expression>')
-  .argument('[underKeyword]')
-  .argument('[parentId]')
-  .option('--file <path>')
-  .option('--id <id>')
-  .action(async (expression, underKeyword, parentId, opts) => {
-    try {
-      if (underKeyword && underKeyword !== 'under') {
-        throw new CliError('SCHEMA_INVALID', `expected keyword 'under', got '${underKeyword}'`);
-      }
-      const result = await addNode(opts.file, {
-        parent: parentId ?? 'root',
-        id: opts.id,
-        set: parseSparkExpression(expression)
-      });
-      outputSuccess('add', opts.file ?? '.treejson/tree.json', result);
-    } catch (err) {
-      outputError('add', err);
-    }
-  });
-
-spark
-  .command('delete')
-  .argument('<id>')
-  .option('--file <path>')
-  .option('--yes')
-  .action(async (id, opts) => {
-    try {
-      const result = await deleteNode(opts.file, id, {
-        cascade: true,
-        yes: Boolean(opts.yes)
-      });
-      outputSuccess(opts.yes ? 'delete' : 'delete_preview', opts.file ?? '.treejson/tree.json', result);
-    } catch (err) {
-      outputError('delete', err);
     }
   });
 

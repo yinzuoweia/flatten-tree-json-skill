@@ -1,24 +1,41 @@
 # treejson (`@yinzuoweia/tree-json-cli`)
 
-Agent-friendly JSON tree CLI and JS API.
+Novix idea-tree CLI and JS API for fixed-schema delivery.
 
 ## Install
 
 ```bash
-npm i @yinzuoweia/tree-json-cli
+npm i @yinzuoweia/tree-json-cli@novix
 ```
 
 Run without installing:
 
 ```bash
-npx @yinzuoweia/tree-json-cli --version
+npx @yinzuoweia/tree-json-cli@novix --version
 ```
 
 > For deterministic CI/agent usage, prefer `npx @yinzuoweia/tree-json-cli ...`.
 
 ## CLI
 
-Default file path: `./.treejson/tree.json`
+This `novix` release line enforces a fixed node schema for every node:
+
+```json
+{
+  "summary": "string",
+  "description": "string",
+  "references": ["https://example.com"]
+}
+```
+
+Only `summary`, `description`, and `references` are allowed as business fields.
+Missing fields default to empty values on `add` and `upsert`.
+
+Default file path:
+- If `/home/novix/workspace/project` exists: `/home/novix/workspace/project/novix-idea-tree.json`
+- Otherwise: `./novix-idea-tree.json` (under current command working directory)
+
+Custom `--file` path rule: file name must end with `idea-tree.json`.
 
 ```bash
 treejson init [--file <path>] [--force]
@@ -36,19 +53,11 @@ treejson snapshot create [--name <name>] [--file <path>]
 treejson snapshot restore <snapshotId> [--file <path>]
 ```
 
-### Natural aliases (`spark`)
-
-```bash
-treejson spark search "newer_than:7d tag:idea" --max 10
-treejson spark add "summary:idea description:detail" under root
-treejson spark delete <id> --yes
-```
-
 ## Query DSL (v1)
 
 - Full text term: `transformer`
-- Field filter: `tag:idea`
-- Comparators: `score>=0.9`, `created_at>1710000000`
+- Field filter: `parent:root`
+- Comparators: `created_at>1710000000`
 - Relative time: `newer_than:7d`, `older_than:30d`
 - Multiple conditions are AND.
 
@@ -80,5 +89,8 @@ CLI always writes machine-readable JSON:
 
 - Root node is fixed as `root` and immutable.
 - Reserved fields: `id,parent,children,created_at`.
+- Fixed business fields: `summary,description,references`.
+- `validate` reports incomplete content as warnings, such as empty `summary`, empty `description`, or empty non-root `references`.
 - Writes are protected by file lock + atomic rename.
 - Snapshot retention default is `20` and can be configured with `TREEJSON_SNAPSHOT_KEEP`.
+- Snapshots are stored under the tree file sibling directory: `.snapshot/`.

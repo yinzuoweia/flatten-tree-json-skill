@@ -3,6 +3,7 @@ import { dirname, join, parse } from 'node:path';
 import { CliError } from './errors.js';
 import { generateNodeId } from './id.js';
 import { withFileLock } from './lock.js';
+import { assertOnlyNovixMutableFields, assertNovixUnsetAllowed, assertValidNovixNode, collectNovixTreeWarnings, withNovixDefaults } from './novix.js';
 import { matchesNode, parseQuery } from './query.js';
 import {
   createInitialTree,
@@ -251,10 +252,10 @@ function addNodeOnTree(tree: TreeFile, input: AddInput): { id: string; parent: s
   assertNodeIdAvailable(tree, nodeId);
 
   const ts = nowTs();
-  const extra: Record<string, unknown> = {};
-  for (const [key, value] of Object.entries(input.set ?? {})) {
+  assertOnlyNovixMutableFields(input.set ?? {});
+  const extra = withNovixDefaults(input.set ?? {});
+  for (const key of Object.keys(extra)) {
     ensureMutableField(key);
-    extra[key] = value;
   }
 
   tree[nodeId] = {
@@ -264,12 +265,16 @@ function addNodeOnTree(tree: TreeFile, input: AddInput): { id: string; parent: s
     created_at: ts,
     ...extra
   };
+  assertValidNovixNode(nodeId, tree[nodeId]);
   addToParent(tree, nodeId, parentId);
   return { id: nodeId, parent: parentId };
 }
 
 function updateNodeOnTree(tree: TreeFile, nodeId: string, patch: UpdateInput): TreeNode {
   const node = assertNodeExists(tree, nodeId);
+
+  assertOnlyNovixMutableFields(patch.set ?? {});
+  assertNovixUnsetAllowed(patch.unset ?? []);
 
   for (const key of Object.keys(patch.set ?? {})) {
     ensureMutableField(key);
@@ -285,6 +290,7 @@ function updateNodeOnTree(tree: TreeFile, nodeId: string, patch: UpdateInput): T
     delete node[key];
   }
 
+  assertValidNovixNode(nodeId, node);
   return node;
 }
 
@@ -406,6 +412,8 @@ function validateTreeObject(tree: TreeFile): { valid: boolean; errors: string[];
       warnings.push(`node '${id}' is disconnected from root`);
     }
   }
+
+  warnings.push(...collectNovixTreeWarnings(tree));
 
   return {
     valid: errors.length === 0,
@@ -609,8 +617,19 @@ export async function findNodesInternal(
 
 export async function validateTree(filePathRaw?: string): Promise<{ valid: boolean; errors: string[]; warnings: string[] }> {
   const file = resolveTreePath({ filePath: filePathRaw });
-  const tree = await readTree(file);
-  return validateTreeObject(tree);
+  try {
+    const tree = await readTree(file);
+    return validateTreeObject(tree);
+  } catch (err) {
+    if (err instanceof CliError && err.code === 'SCHEMA_INVALID') {
+      return {
+        valid: false,
+        errors: [err.message, ...(err.hint ? [err.hint] : [])],
+        warnings: []
+      };
+    }
+    throw err;
+  }
 }
 
 export async function upsertNode(
@@ -749,19 +768,6 @@ export function parseSetPairs(pairs: string[] = []): Record<string, unknown> {
     out[key] = value;
   }
   return out;
-}
-
-export function parseSparkExpression(expression: string): Record<string, unknown> {
-  const pairs = expression.match(/"[^"]+"|'[^']+'|\S+/g) ?? [];
-  const normalized = pairs.map((part) => {
-    const token = part.startsWith('"') || part.startsWith("'") ? part.slice(1, -1) : part;
-    const idx = token.indexOf(':');
-    if (idx <= 0) {
-      throw new CliError('SCHEMA_INVALID', `invalid spark token '${token}', expected key:value`);
-    }
-    return `${token.slice(0, idx)}=${token.slice(idx + 1)}`;
-  });
-  return parseSetPairs(normalized);
 }
 
 export function snapshotIdFromPath(pathValue: string): string {
