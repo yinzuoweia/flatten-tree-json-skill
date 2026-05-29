@@ -10,7 +10,8 @@ import {
   applyBulk,
   restoreSnapshot,
   createSnapshot,
-  updateNode
+  updateNode,
+  getNode
 } from '../src/api.js';
 
 describe('core tree api', () => {
@@ -30,6 +31,9 @@ describe('core tree api', () => {
     expect(raw.root.references).toEqual([]);
     expect(typeof raw.root.next_action).toBe('string');
     expect(raw.root.next_action.length).toBeGreaterThan(0);
+    expect(raw.root.branch_mode).toBe('strategy');
+    expect(raw.root.growth_posture).toBe('preserve');
+    expect(raw.root.next_action_style).toBe('frame');
   });
 
   it('supports add and delete preview/confirm cascade', async () => {
@@ -43,7 +47,10 @@ describe('core tree api', () => {
         summary: 'A',
         description: 'A description',
         next_action: 'Use a focused session to expand A into a concrete research task.',
-        references: ['https://example.com/a']
+        references: ['https://example.com/a'],
+        branch_mode: 'inquiry',
+        growth_posture: 'deepen',
+        next_action_style: 'synthesize'
       }
     });
     const b = await addNode(filePath, {
@@ -52,7 +59,10 @@ describe('core tree api', () => {
         summary: 'B',
         description: 'B description',
         next_action: 'Use a follow-up session to refine B.',
-        references: ['https://example.com/b']
+        references: ['https://example.com/b'],
+        branch_mode: 'execution',
+        growth_posture: 'converge',
+        next_action_style: 'implement'
       }
     });
 
@@ -136,7 +146,7 @@ describe('core tree api', () => {
     ).rejects.toMatchObject({ code: 'SCHEMA_INVALID' });
   });
 
-  it('fills missing novix fields with defaults and reports incomplete content as warnings', async () => {
+  it('fills missing novix fields with defaults and rejects incomplete visible leaves on validate', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'treejson-'));
     const filePath = join(dir, 'novix-idea-tree.json');
 
@@ -153,10 +163,13 @@ describe('core tree api', () => {
     expect(raw[added.id].description).toBe('');
     expect(raw[added.id].next_action).toBe('');
     expect(raw[added.id].references).toEqual([]);
+    expect(raw[added.id].branch_mode).toBe('execution');
+    expect(raw[added.id].growth_posture).toBe('converge');
+    expect(raw[added.id].next_action_style).toBe('implement');
 
     const initialReport = await validateTree(filePath);
-    expect(initialReport.valid).toBe(true);
-    expect(initialReport.errors).toEqual([]);
+    expect(initialReport.valid).toBe(false);
+    expect(initialReport.errors.join('\n')).toContain(`leaf node '${added.id}' must define non-empty next_action`);
     expect(initialReport.warnings.join('\n')).toContain(`node '${added.id}' has empty description`);
     expect(initialReport.warnings.join('\n')).toContain(`node '${added.id}' has empty next_action`);
     expect(initialReport.warnings.join('\n')).toContain(`node '${added.id}' has no references`);
@@ -173,6 +186,45 @@ describe('core tree api', () => {
     expect(completedReport.valid).toBe(true);
     expect(completedReport.errors).toEqual([]);
     expect(completedReport.warnings).toEqual([]);
+  });
+
+  it('rejects no-op next_action text on visible leaves during validation', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'treejson-'));
+    const filePath = join(dir, 'novix-idea-tree.json');
+
+    await initTree(filePath, { force: true });
+    const added = await addNode(filePath, {
+      parent: 'root',
+      set: {
+        summary: 'Context-only leaf',
+        description: 'This leaf should not pass with passive maintenance text.',
+        next_action: 'Review periodically and keep as reference.',
+        references: ['https://example.com/context'],
+        branch_mode: 'memory',
+        growth_posture: 'preserve',
+        next_action_style: 'preserve_context'
+      }
+    });
+
+    const report = await validateTree(filePath);
+    expect(report.valid).toBe(false);
+    expect(report.errors.join('\n')).toContain(`leaf node '${added.id}' next_action is a no-op`);
+
+    await addNode(filePath, {
+      parent: added.id,
+      set: {
+        summary: 'Concrete child',
+        description: 'A child makes the passive parent an internal context branch.',
+        next_action: 'Synthesize the context into one reusable framing paragraph with explicit boundaries.',
+        references: ['https://example.com/context'],
+        branch_mode: 'memory',
+        growth_posture: 'preserve',
+        next_action_style: 'synthesize'
+      }
+    });
+
+    const internalReport = await validateTree(filePath);
+    expect(internalReport.valid).toBe(true);
   });
 
   it('rejects unsetting required novix fields', async () => {
@@ -194,6 +246,38 @@ describe('core tree api', () => {
       code: 'SCHEMA_INVALID'
     });
     await expect(updateNode(filePath, node.id, { unset: ['next_action'] })).rejects.toMatchObject({
+      code: 'SCHEMA_INVALID'
+    });
+    await expect(updateNode(filePath, node.id, { unset: ['branch_mode'] })).rejects.toMatchObject({
+      code: 'SCHEMA_INVALID'
+    });
+  });
+
+  it('validates living-map classification fields', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'treejson-'));
+    const filePath = join(dir, 'novix-idea-tree.json');
+    await initTree(filePath, { force: true });
+
+    const node = await addNode(filePath, {
+      set: {
+        summary: 'Signal scan',
+        description: 'Use a current external signal to decide whether a direction deserves expansion.',
+        next_action: 'Compare the current signal against the parent direction and decide whether to keep it.',
+        references: ['https://example.com/signal'],
+        branch_mode: 'signal',
+        growth_posture: 'connect',
+        next_action_style: 'probe_signal'
+      }
+    });
+
+    expect((await getNode(filePath, node.id)).branch_mode).toBe('signal');
+    await expect(updateNode(filePath, node.id, { set: { branch_mode: 'todo' } })).rejects.toMatchObject({
+      code: 'SCHEMA_INVALID'
+    });
+    await expect(updateNode(filePath, node.id, { set: { growth_posture: 'explode' } })).rejects.toMatchObject({
+      code: 'SCHEMA_INVALID'
+    });
+    await expect(updateNode(filePath, node.id, { set: { next_action_style: 'do_everything' } })).rejects.toMatchObject({
       code: 'SCHEMA_INVALID'
     });
   });

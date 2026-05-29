@@ -165,6 +165,33 @@ function parseSort(sortRaw?: string): { field: string; direction: 'asc' | 'desc'
   return { field, direction };
 }
 
+const NO_OP_NEXT_ACTION_PATTERNS = [
+  'no action needed',
+  'keep as reference',
+  'review periodically',
+  'maintain searchable state',
+  '无需操作',
+  '无需主动操作',
+  '不用操作',
+  '仅保存',
+  '仅作为参考',
+  '定期回顾',
+  '保持可搜索'
+];
+
+function isNonRootLeaf(id: string, node: TreeNode): boolean {
+  return id !== ROOT_ID && node.children.length === 0;
+}
+
+function normalizedText(value: unknown): string {
+  return typeof value === 'string' ? value.trim().toLowerCase() : '';
+}
+
+function isNoOpNextAction(value: unknown): boolean {
+  const text = normalizedText(value);
+  return text.length > 0 && NO_OP_NEXT_ACTION_PATTERNS.some((pattern) => text.includes(pattern.toLowerCase()));
+}
+
 function valueForSort(value: unknown): number | string {
   if (typeof value === 'number') {
     return value;
@@ -357,6 +384,15 @@ function validateTreeObject(tree: TreeFile): { valid: boolean; errors: string[];
 
     if (id !== ROOT_ID && node.parent === null) {
       errors.push(`node '${id}' parent cannot be null`);
+    }
+
+    if (isNonRootLeaf(id, node)) {
+      const nextAction = normalizedText(node.next_action);
+      if (nextAction.length === 0) {
+        errors.push(`leaf node '${id}' must define non-empty next_action`);
+      } else if (isNoOpNextAction(node.next_action)) {
+        errors.push(`leaf node '${id}' next_action is a no-op`);
+      }
     }
 
     if (node.parent) {

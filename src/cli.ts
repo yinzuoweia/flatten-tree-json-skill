@@ -19,6 +19,12 @@ import {
   upsertNode,
   validateTree
 } from './api.js';
+import {
+  NOVIX_ALLOWED_FIELDS_HELP,
+  NOVIX_BRANCH_MODES,
+  NOVIX_GROWTH_POSTURES,
+  NOVIX_NEXT_ACTION_STYLES
+} from './novix.js';
 import type { ErrorEnvelope, SuccessEnvelope } from './types.js';
 
 const require = createRequire(import.meta.url);
@@ -80,6 +86,12 @@ function outputFile(filePath?: string): string {
 
 const fileOptionDescription =
   'path to tree file (defaults to /home/novix/workspace/project/novix-idea-tree.json or ./novix-idea-tree.json; file name must end with idea-tree.json)';
+const allowedFieldsText = NOVIX_ALLOWED_FIELDS_HELP.replace('allowed fields: ', '');
+const classificationHelp = [
+  `branch_mode: ${NOVIX_BRANCH_MODES.join('|')}`,
+  `growth_posture: ${NOVIX_GROWTH_POSTURES.join('|')}`,
+  `next_action_style: ${NOVIX_NEXT_ACTION_STYLES.join('|')}`
+].join('\n');
 
 const topLevelDescription = [
   'treejson CLI for Novix fixed-schema nodes',
@@ -88,7 +100,10 @@ const topLevelDescription = [
   '  summary: string',
   '  description: string',
   '  next_action: string',
-  '  references: string[]'
+  '  references: string[]',
+  '  branch_mode: execution|inquiry|signal|memory|strategy',
+  '  growth_posture: converge|deepen|branch|connect|preserve|quiet',
+  '  next_action_style: implement|validate|compare|frame|synthesize|probe_signal|find_counterexample|preserve_context'
 ].join('\n');
 
 const program = new Command();
@@ -113,9 +128,9 @@ program
 
 program
   .command('add')
-  .description('Add a node. Allowed business fields: summary, description, next_action, references.')
+  .description(`Add a node. Allowed business fields: ${allowedFieldsText}.`)
   .requiredOption('--set <pair...>', 'key=value pairs')
-  .addHelpText('after', '\nAllowed fields: summary, description, next_action, references\nMissing fields default to empty values.')
+  .addHelpText('after', `\nAllowed fields: ${allowedFieldsText}\n${classificationHelp}\nMissing fields default to empty values.`)
   .option('--file <path>', fileOptionDescription)
   .option('--parent <id>')
   .option('--id <id>')
@@ -164,8 +179,8 @@ program
 program
   .command('update')
   .argument('<id>')
-  .description('Update summary, description, next_action, or references while preserving the fixed schema.')
-  .addHelpText('after', '\nAllowed fields: summary, description, next_action, references')
+  .description('Update fixed-schema business fields while preserving the Novix node schema.')
+  .addHelpText('after', `\nAllowed fields: ${allowedFieldsText}\n${classificationHelp}`)
   .option('--file <path>', fileOptionDescription)
   .option('--set <pair...>')
   .option('--unset <key...>')
@@ -238,7 +253,7 @@ program
 program
   .command('validate')
   .description('Validate tree structure and fixed node schema. Incomplete node content is reported as warnings.')
-  .addHelpText('after', '\nRoot references may be empty. Non-root empty references are reported as warnings.')
+  .addHelpText('after', `\nRoot references may be empty. Non-root empty references are reported as warnings.\nEach non-root leaf must have a non-empty, non-no-op next_action.\n${classificationHelp}`)
   .option('--file <path>', fileOptionDescription)
   .action(async (opts) => {
     try {
@@ -251,11 +266,11 @@ program
 
 program
   .command('upsert')
-  .description('Create or update a node. Allowed business fields: summary, description, next_action, references.')
+  .description(`Create or update a node. Allowed business fields: ${allowedFieldsText}.`)
   .requiredOption('--id <id>')
   .requiredOption('--set <pair...>')
   .option('--parent <id>')
-  .addHelpText('after', '\nAllowed fields: summary, description, next_action, references\nMissing fields default to empty values.')
+  .addHelpText('after', `\nAllowed fields: ${allowedFieldsText}\n${classificationHelp}\nMissing fields default to empty values.`)
   .option('--file <path>', fileOptionDescription)
   .action(async (opts) => {
     try {

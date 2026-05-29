@@ -1,6 +1,6 @@
 {
   "name": "@yinzuoweia/tree-json-cli",
-  "version": "0.3.0-novix.2",
+  "version": "0.3.0-novix.4",
   "description": "treejson CLI for agent-friendly JSON tree operations",
   "type": "module",
   "bin": {
