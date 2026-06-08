@@ -57,8 +57,10 @@ treejson init --file "$TREE_FILE" [--force]
 treejson add --file "$TREE_FILE" --parent root \
   --set summary=Idea \
   --set description=Context \
+  --set evidence_rationale="The listed references explain why this card exists." \
   --set next_action="Open a focused follow-up session with scope, inputs, method, validation, and deliverable." \
   --set references='[]'
+treejson add-many --nodes-file /abs/path/nodes.json --file "$TREE_FILE" --atomic
 treejson get <id> --file "$TREE_FILE"
 treejson ls [parentId] --file "$TREE_FILE" --max 20
 treejson update <id> --file "$TREE_FILE" --set description=Updated --set next_action="Refine this into a concrete session."
@@ -81,12 +83,14 @@ Every node uses the fixed Novix schema:
 {
   "summary": "string",
   "description": "string",
+  "evidence_rationale": "string",
   "next_action": "string",
   "references": ["https://example.com"]
 }
 ```
 
 Missing fields default to empty strings or `[]` on `add` and `upsert`.
+`evidence_rationale` should explain why the referenced sources justify the node.
 
 ## Safe Mutation Pattern (Agent Default)
 
@@ -151,6 +155,26 @@ Common error codes and next actions:
 ```
 
 For delete in bulk, include `"yes": true` explicitly.
+
+`add-many` accepts either array form or object form:
+
+```json
+{
+  "nodes": [
+    {
+      "id": "node_a",
+      "parent": "root",
+      "set": {
+        "summary": "A",
+        "description": "Context",
+        "evidence_rationale": "context:session-a and source:file.pdf point to the same reusable direction.",
+        "next_action": "Open a focused follow-up session.",
+        "references": ["context:session-a", "source:file.pdf"]
+      }
+    }
+  ]
+}
+```
 
 ## Agent Defaults
 

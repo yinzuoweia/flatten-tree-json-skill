@@ -3,6 +3,8 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import {
   addNode,
+  addManyNodes,
+  applyAddManyFromFile,
   applyBulkFromFile,
   createSnapshot,
   deleteNode,
@@ -19,6 +21,8 @@ import {
 } from './core.js';
 import type {
   AddInput,
+  AddManyInput,
+  AddManyNodeInput,
   BulkInput,
   DeleteInput,
   FindInput,
@@ -28,9 +32,23 @@ import type {
   UpdateInput
 } from './core.js';
 
-export { initTree, addNode, getNode, listChildren, updateNode, deleteNode, moveNode, validateTree, upsertNode, createSnapshot, restoreSnapshot, parseSetPairs };
+export {
+  initTree,
+  addNode,
+  addManyNodes,
+  getNode,
+  listChildren,
+  updateNode,
+  deleteNode,
+  moveNode,
+  validateTree,
+  upsertNode,
+  createSnapshot,
+  restoreSnapshot,
+  parseSetPairs
+};
 
-export type { InitOptions, AddInput, UpdateInput, DeleteInput, FindInput, BulkInput, SnapshotInfo, MutateOptions };
+export type { InitOptions, AddInput, AddManyInput, AddManyNodeInput, UpdateInput, DeleteInput, FindInput, BulkInput, SnapshotInfo, MutateOptions };
 
 export async function findNodes(
   filePath: string | undefined,
@@ -72,4 +90,20 @@ export async function applyBulkFromOpsFile(
   options: MutateOptions = {}
 ): Promise<{ applied: number; results: Array<Record<string, unknown>> }> {
   return applyBulkFromFile(filePath, input, options);
+}
+
+export async function applyAddMany(
+  filePath: string | undefined,
+  nodes: AddManyNodeInput[],
+  options: Omit<MutateOptions, 'autoSnapshot'> & { atomic?: boolean } = {}
+): Promise<{ added: number; results: Array<{ id: string; parent: string }> }> {
+  return addManyNodes(filePath, nodes, options);
+}
+
+export async function applyAddManyFromNodesFile(
+  filePath: string | undefined,
+  input: AddManyInput,
+  options: MutateOptions = {}
+): Promise<{ added: number; results: Array<{ id: string; parent: string }> }> {
+  return applyAddManyFromFile(filePath, input, options);
 }

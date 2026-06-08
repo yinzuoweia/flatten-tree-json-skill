@@ -77,6 +77,7 @@ export function createInitialTree(now: Date = new Date()): TreeFile {
       created_at: ts,
       summary: NOVIX_ROOT_SUMMARY,
       description: NOVIX_ROOT_DESCRIPTION,
+      evidence_rationale: '',
       next_action: NOVIX_ROOT_NEXT_ACTION,
       references: [],
       branch_mode: NOVIX_ROOT_BRANCH_MODE,

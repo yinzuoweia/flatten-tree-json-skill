@@ -8,6 +8,7 @@ import {
   deleteNode,
   validateTree,
   applyBulk,
+  applyAddMany,
   restoreSnapshot,
   createSnapshot,
   updateNode,
@@ -29,6 +30,7 @@ describe('core tree api', () => {
     expect(typeof raw.root.description).toBe('string');
     expect(raw.root.description.length).toBeGreaterThan(0);
     expect(raw.root.references).toEqual([]);
+    expect(raw.root.evidence_rationale).toBe('');
     expect(typeof raw.root.next_action).toBe('string');
     expect(raw.root.next_action.length).toBeGreaterThan(0);
     expect(raw.root.branch_mode).toBe('strategy');
@@ -161,6 +163,7 @@ describe('core tree api', () => {
     const raw = JSON.parse(await readFile(filePath, 'utf-8'));
     expect(raw[added.id].summary).toBe('Draft idea');
     expect(raw[added.id].description).toBe('');
+    expect(raw[added.id].evidence_rationale).toBe('');
     expect(raw[added.id].next_action).toBe('');
     expect(raw[added.id].references).toEqual([]);
     expect(raw[added.id].branch_mode).toBe('execution');
@@ -177,6 +180,7 @@ describe('core tree api', () => {
     await updateNode(filePath, added.id, {
       set: {
         description: 'Expanded description',
+        evidence_rationale: 'The draft source explains why this node should be expanded now.',
         next_action: 'Open a Method Design session that specifies scope, inputs, method, validation, and deliverable.',
         references: ['https://example.com/draft']
       }
@@ -313,5 +317,91 @@ describe('core tree api', () => {
     const report = await validateTree(filePath);
     expect(report.valid).toBe(false);
     expect(report.errors.join('\n')).toContain('summary');
+  });
+
+  it('adds many nodes atomically from a nodes list', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'treejson-'));
+    const filePath = join(dir, 'novix-idea-tree.json');
+
+    await initTree(filePath, { force: true });
+    const result = await applyAddMany(
+      filePath,
+      [
+        {
+          id: 'idea_a',
+          parent: 'root',
+          set: {
+            summary: 'A',
+            description: 'A description',
+            evidence_rationale: 'The first source explains why A should become a card.',
+            next_action: 'Turn A into a scoped research handoff.',
+            references: ['context:session-a']
+          }
+        },
+        {
+          id: 'idea_b',
+          parent: 'idea_a',
+          set: {
+            summary: 'B',
+            description: 'B description',
+            evidence_rationale: 'The second source specializes the A direction.',
+            next_action: 'Turn B into a scoped validation handoff.',
+            references: ['source:file-b.pdf']
+          }
+        }
+      ],
+      { atomic: true }
+    );
+
+    expect(result.added).toBe(2);
+    expect(result.results).toEqual([
+      { id: 'idea_a', parent: 'root' },
+      { id: 'idea_b', parent: 'idea_a' }
+    ]);
+
+    const raw = JSON.parse(await readFile(filePath, 'utf-8'));
+    expect(raw.idea_a.evidence_rationale).toContain('first source');
+    expect(raw.idea_b.parent).toBe('idea_a');
+    expect(raw.idea_a.children).toEqual(['idea_b']);
+  });
+
+  it('rolls back add-many when any node is invalid under atomic mode', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'treejson-'));
+    const filePath = join(dir, 'novix-idea-tree.json');
+
+    await initTree(filePath, { force: true });
+    await expect(
+      applyAddMany(
+        filePath,
+        [
+          {
+            id: 'idea_a',
+            parent: 'root',
+            set: {
+              summary: 'A',
+              description: 'A description',
+              evidence_rationale: 'The first source explains why A should become a card.',
+              next_action: 'Turn A into a scoped research handoff.',
+              references: ['context:session-a']
+            }
+          },
+          {
+            id: 'idea_b',
+            parent: 'missing_parent',
+            set: {
+              summary: 'B',
+              description: 'B description',
+              evidence_rationale: 'This should not be written because the parent is missing.',
+              next_action: 'Turn B into a scoped validation handoff.',
+              references: ['source:file-b.pdf']
+            }
+          }
+        ],
+        { atomic: true }
+      )
+    ).rejects.toThrow();
+
+    const raw = JSON.parse(await readFile(filePath, 'utf-8'));
+    expect(Object.keys(raw)).toEqual(['root']);
   });
 });

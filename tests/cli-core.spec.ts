@@ -1,4 +1,4 @@
-import { mkdtemp } from 'node:fs/promises';
+import { mkdtemp, writeFile } from 'node:fs/promises';
 import { existsSync, readFileSync, realpathSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -118,6 +118,7 @@ describe('cli core commands', () => {
     const getPayload = JSON.parse(getOut.stdout);
     expect(getPayload.result.summary).toBe('draft');
     expect(getPayload.result.description).toBe('');
+    expect(getPayload.result.evidence_rationale).toBe('');
     expect(getPayload.result.next_action).toBe('');
     expect(getPayload.result.references).toEqual([]);
     expect(getPayload.result.branch_mode).toBe('execution');
@@ -169,6 +170,7 @@ describe('cli core commands', () => {
     expect(addHelp.stdout).toContain('description');
     expect(addHelp.stdout).toContain('next_action');
     expect(addHelp.stdout).toContain('references');
+    expect(addHelp.stdout).toContain('evidence_rationale');
     expect(addHelp.stdout).toContain('branch_mode');
     expect(addHelp.stdout).toContain('growth_posture');
     expect(addHelp.stdout).toContain('next_action_style');
@@ -214,5 +216,53 @@ describe('cli core commands', () => {
       expect(payload.error.code).toBe('SCHEMA_INVALID');
       expect(payload.error.message).toContain('type');
     }
+  });
+
+  it('adds many nodes from a nodes file', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'treejson-cli-add-many-'));
+    const treeFile = join(dir, 'novix-idea-tree.json');
+    const nodesFile = join(dir, 'nodes.json');
+
+    await runCli(['init', '--file', treeFile, '--force']);
+    await writeFile(
+      nodesFile,
+      JSON.stringify({
+        nodes: [
+          {
+            id: 'idea_a',
+            parent: 'root',
+            set: {
+              summary: 'A',
+              description: 'A description',
+              evidence_rationale: 'The first source explains why A should become a card.',
+              next_action: 'Turn A into a scoped research handoff.',
+              references: ['context:session-a']
+            }
+          },
+          {
+            id: 'idea_b',
+            parent: 'idea_a',
+            set: {
+              summary: 'B',
+              description: 'B description',
+              evidence_rationale: 'The second source specializes the A direction.',
+              next_action: 'Turn B into a scoped validation handoff.',
+              references: ['source:file-b.pdf']
+            }
+          }
+        ]
+      }),
+      'utf-8'
+    );
+
+    const addManyOut = await runCli(['add-many', '--file', treeFile, '--nodes-file', nodesFile, '--atomic']);
+    const addManyPayload = JSON.parse(addManyOut.stdout);
+    expect(addManyPayload.action).toBe('add_many');
+    expect(addManyPayload.result.added).toBe(2);
+
+    const getOut = await runCli(['get', 'idea_b', '--file', treeFile]);
+    const getPayload = JSON.parse(getOut.stdout);
+    expect(getPayload.result.parent).toBe('idea_a');
+    expect(getPayload.result.evidence_rationale).toContain('second source');
   });
 });

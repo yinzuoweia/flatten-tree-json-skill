@@ -5,6 +5,7 @@ import { CliError } from './errors.js';
 import { resolveTreePath } from './storage.js';
 import {
   addNode,
+  applyAddManyFromNodesFile,
   applyBulkFromOpsFile,
   createSnapshot,
   deleteNode,
@@ -99,6 +100,7 @@ const topLevelDescription = [
   'Node schema:',
   '  summary: string',
   '  description: string',
+  '  evidence_rationale: string',
   '  next_action: string',
   '  references: string[]',
   '  branch_mode: execution|inquiry|signal|memory|strategy',
@@ -144,6 +146,26 @@ program
       outputSuccess('add', outputFile(opts.file), result);
     } catch (err) {
       outputError('add', err);
+    }
+  });
+
+program
+  .command('add-many')
+  .description(`Add multiple nodes from a JSON file. Allowed business fields: ${allowedFieldsText}.`)
+  .requiredOption('--nodes-file <path>')
+  .option('--file <path>', fileOptionDescription)
+  .option('--atomic', 'enable atomic rollback')
+  .option('--no-atomic', 'disable atomic rollback')
+  .addHelpText('after', `\nNodes file format: an array or {"nodes": [{"id": "...", "parent": "root", "set": {...}}]}\nAllowed fields: ${allowedFieldsText}\n${classificationHelp}`)
+  .action(async (opts) => {
+    try {
+      const result = await applyAddManyFromNodesFile(opts.file, {
+        nodesFile: opts.nodesFile,
+        atomic: opts.atomic !== false
+      });
+      outputSuccess('add_many', outputFile(opts.file), result);
+    } catch (err) {
+      outputError('add_many', err);
     }
   });
 

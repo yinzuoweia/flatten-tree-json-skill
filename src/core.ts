@@ -31,6 +31,13 @@ export type AddInput = {
   set: Record<string, unknown>;
 };
 
+export type AddManyNodeInput = AddInput;
+
+export type AddManyInput = {
+  nodesFile: string;
+  atomic?: boolean;
+};
+
 export type UpdateInput = {
   set?: Record<string, unknown>;
   unset?: string[];
@@ -475,6 +482,25 @@ function asRecord(value: unknown): Record<string, unknown> {
   return value as Record<string, unknown>;
 }
 
+function normalizeAddManyNodes(raw: unknown): AddManyNodeInput[] {
+  const nodesRaw = Array.isArray(raw)
+    ? raw
+    : raw && typeof raw === 'object' && Array.isArray((raw as { nodes?: unknown }).nodes)
+      ? (raw as { nodes: unknown[] }).nodes
+      : null;
+  if (!nodesRaw) {
+    throw new CliError('SCHEMA_INVALID', 'add-many nodes file must be an array or {nodes: []}');
+  }
+  return nodesRaw.map((nodeRaw) => {
+    const node = asRecord(nodeRaw);
+    return {
+      parent: typeof node.parent === 'string' ? node.parent : undefined,
+      id: typeof node.id === 'string' ? node.id : undefined,
+      set: asRecord(node.set ?? {})
+    };
+  });
+}
+
 function applyOneBulkOp(tree: TreeFile, op: Record<string, unknown>): Record<string, unknown> {
   const action = String(op.action ?? '');
   switch (action) {
@@ -556,6 +582,43 @@ export async function initTree(filePathRaw?: string, options: InitOptions = {}):
 
 export async function addNode(filePathRaw: string | undefined, input: AddInput, options: MutateOptions = {}): Promise<{ id: string; parent: string }> {
   return mutateWithLock(filePathRaw, (tree) => addNodeOnTree(tree, input), options);
+}
+
+export async function addManyNodes(
+  filePathRaw: string | undefined,
+  nodes: AddManyNodeInput[],
+  options: MutateOptions & { atomic?: boolean } = {}
+): Promise<{ added: number; results: Array<{ id: string; parent: string }> }> {
+  const file = resolveTreePath({ filePath: filePathRaw });
+  const lockPath = getLockPath(file);
+
+  return withFileLock(lockPath, async () => {
+    const tree = await readTree(file);
+    let atomicSnapshot: SnapshotInfo | null = null;
+    if (options.atomic !== false) {
+      atomicSnapshot = await createSnapshotInternal(file, 'add-many-atomic');
+    } else if (options.autoSnapshot !== false) {
+      await createSnapshotInternal(file, 'autosave');
+    }
+
+    const results: Array<{ id: string; parent: string }> = [];
+    try {
+      for (const node of nodes) {
+        results.push(addNodeOnTree(tree, node));
+      }
+      await writeTreeAtomic(file, tree);
+      await pruneSnapshots(file, options.snapshotKeep ?? defaultSnapshotKeep());
+      return {
+        added: results.length,
+        results
+      };
+    } catch (err) {
+      if (atomicSnapshot) {
+        await copyFile(atomicSnapshot.path, file);
+      }
+      throw err;
+    }
+  });
 }
 
 export async function getNode(filePathRaw: string | undefined, nodeId: string): Promise<TreeNode> {
@@ -731,6 +794,19 @@ export async function applyBulkFromFile(
       }
       throw err;
     }
+  });
+}
+
+export async function applyAddManyFromFile(
+  filePathRaw: string | undefined,
+  input: AddManyInput,
+  options: MutateOptions = {}
+): Promise<{ added: number; results: Array<{ id: string; parent: string }> }> {
+  const nodesRaw = JSON.parse(await readFile(input.nodesFile, 'utf-8'));
+  const nodes = normalizeAddManyNodes(nodesRaw);
+  return addManyNodes(filePathRaw, nodes, {
+    ...options,
+    atomic: input.atomic
   });
 }
 

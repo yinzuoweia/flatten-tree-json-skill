@@ -17,6 +17,7 @@ export const NOVIX_NEXT_ACTION_STYLES = [
 export const NOVIX_MUTABLE_FIELDS = [
   'summary',
   'description',
+  'evidence_rationale',
   'next_action',
   'references',
   'branch_mode',
@@ -29,7 +30,8 @@ const NOVIX_ALLOWED_FIELD_SET = new Set<string>([...RESERVED_FIELDS, ...NOVIX_MU
 const NOVIX_BRANCH_MODE_SET = new Set<string>(NOVIX_BRANCH_MODES);
 const NOVIX_GROWTH_POSTURE_SET = new Set<string>(NOVIX_GROWTH_POSTURES);
 const NOVIX_NEXT_ACTION_STYLE_SET = new Set<string>(NOVIX_NEXT_ACTION_STYLES);
-export const NOVIX_ALLOWED_FIELDS_HELP = 'allowed fields: summary, description, next_action, references, branch_mode, growth_posture, next_action_style';
+export const NOVIX_ALLOWED_FIELDS_HELP =
+  'allowed fields: summary, description, evidence_rationale, next_action, references, branch_mode, growth_posture, next_action_style';
 
 export const NOVIX_ROOT_SUMMARY = 'Novix idea tree';
 export const NOVIX_ROOT_DESCRIPTION = 'Root node for Novix idea exploration.';
@@ -57,6 +59,7 @@ export function withNovixDefaults(input: Record<string, unknown>): Record<string
   return {
     summary: '',
     description: '',
+    evidence_rationale: '',
     next_action: '',
     references: [],
     branch_mode: NOVIX_DEFAULT_BRANCH_MODE,
@@ -110,6 +113,12 @@ export function collectNovixNodeErrors(nodeId: string, node: TreeNode): string[]
     errors.push(`node '${nodeId}' must define description`);
   } else if (!hasString(node.description)) {
     errors.push(`node '${nodeId}' description must be a string`);
+  }
+
+  if (!hasOwn(node, 'evidence_rationale')) {
+    errors.push(`node '${nodeId}' must define evidence_rationale`);
+  } else if (!hasString(node.evidence_rationale)) {
+    errors.push(`node '${nodeId}' evidence_rationale must be a string`);
   }
 
   if (!hasOwn(node, 'next_action')) {
@@ -173,6 +182,10 @@ export function collectNovixNodeWarnings(nodeId: string, node: TreeNode): string
 
   if (hasOwn(node, 'description') && hasString(node.description) && !hasNonEmptyString(node.description)) {
     warnings.push(`node '${nodeId}' has empty description`);
+  }
+
+  if (nodeId !== ROOT_ID && hasOwn(node, 'evidence_rationale') && hasString(node.evidence_rationale) && !hasNonEmptyString(node.evidence_rationale)) {
+    warnings.push(`node '${nodeId}' has empty evidence_rationale`);
   }
 
   if (hasOwn(node, 'next_action') && hasString(node.next_action) && !hasNonEmptyString(node.next_action)) {

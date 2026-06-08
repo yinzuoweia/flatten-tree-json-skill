@@ -24,6 +24,7 @@ This `novix` release line enforces a fixed node schema for every node:
 {
   "summary": "string",
   "description": "string",
+  "evidence_rationale": "string",
   "next_action": "string",
   "references": ["https://example.com"],
   "branch_mode": "execution | inquiry | signal | memory | strategy",
@@ -32,8 +33,9 @@ This `novix` release line enforces a fixed node schema for every node:
 }
 ```
 
-Only `summary`, `description`, `next_action`, `references`, `branch_mode`,
-`growth_posture`, and `next_action_style` are allowed as business fields.
+Only `summary`, `description`, `evidence_rationale`, `next_action`,
+`references`, `branch_mode`, `growth_posture`, and `next_action_style` are
+allowed as business fields.
 Missing text/evidence fields default to empty values on `add` and `upsert`.
 Living-map classification fields default to `execution`, `converge`, and
 `implement`.
@@ -47,6 +49,7 @@ Custom `--file` path rule: file name must end with `idea-tree.json`.
 ```bash
 treejson init [--file <path>] [--force]
 treejson add --set key=value... [--parent <id>] [--id <id>] [--file <path>]
+treejson add-many --nodes-file <json> [--atomic|--no-atomic] [--file <path>]
 treejson get <id> [--file <path>]
 treejson ls [parentId] [--max <n>] [--file <path>]
 treejson update <id> [--set key=value...] [--unset key...] [--file <path>]
@@ -80,6 +83,7 @@ import {
   findNodes,
   validateTree,
   applyBulk,
+  applyAddMany,
   createSnapshot,
   restoreSnapshot,
 } from '@yinzuoweia/tree-json-cli';
@@ -96,7 +100,9 @@ CLI always writes machine-readable JSON:
 
 - Root node is fixed as `root` and immutable.
 - Reserved fields: `id,parent,children,created_at`.
-- Fixed business fields: `summary,description,next_action,references,branch_mode,growth_posture,next_action_style`.
+- Fixed business fields:
+  `summary,description,evidence_rationale,next_action,references,branch_mode,growth_posture,next_action_style`.
+- `evidence_rationale` explains why the listed references justify the card.
 - Classification fields make the tree distinguish execution branches from
   inquiry, signal, memory, and strategy branches, and distinguish converging
   leaves from branches that should deepen, branch, connect, preserve, or stay
